@@ -1,7 +1,7 @@
 [project]
 name = "pal-mcp-server"
 version = "9.9.0"
-description = "AI-powered MCP server with multiple model providers"
+description = "PAL Agent Link: MCP bridge for desktop coding sessions, ACP agents, and PAL workflows"
 requires-python = ">=3.10"
 dependencies = [
     "mcp>=1.30.0,<2",
@@ -39,6 +39,12 @@ py-modules = ["server", "config"]
 [project.scripts]
 pal-mcp-server = "server:run"
 pal-agent-link = "agent_link.server:main"
+
+[project.urls]
+Homepage = "https://github.com/Jay1023CN/pal-mcp-server"
+Documentation = "https://github.com/Jay1023CN/pal-mcp-server/blob/main/docs/agent-link.md"
+Issues = "https://github.com/Jay1023CN/pal-mcp-server/issues"
+Upstream = "https://github.com/BeehiveInnovations/pal-mcp-server"
 
 [tool.black]
 line-length = 120

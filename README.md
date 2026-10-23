@@ -1,452 +1,129 @@
-# PAL MCP: Many Workflows. One Context.
+# PAL Agent Link
 
-> **PAL Agent Link fork** — 在上游 PAL 基础上新增 `agentlink`：连接 Antigravity 桌面会话、OpenCode 桌面后台、Qoder / Qoder CN ACP 和 WorkBuddy 本地助理。支持自动发现及 `PAL_AGENT_ONLY=1` 无模型 API Key 模式。详见 [安装与能力边界](docs/agent-link.md)。原有 PAL 工具与 Apache-2.0 许可证保留；本分支不是上游官方版本。
+**让不同的编码代理在同一个项目里协作。**
 
-<div align="center">
+基于 [PAL MCP Server](https://github.com/BeehiveInnovations/pal-mcp-server) 二次开发，通过 MCP 把任务交给 Antigravity、OpenCode、Qoder、Qoder CN 和 WorkBuddy，读取会话输出并继续跟进。保留上游 `clink`，可调用 Codex CLI、Claude Code 和 Gemini CLI；也保留 PAL 原有的模型分析与审查工具。
 
-  <em>Your AI's PAL – a Provider Abstraction Layer</em><br />
-  <sub><a href="docs/name-change.md">Formerly known as Zen MCP</a></sub>
+[![Agent Link tests](https://github.com/Jay1023CN/pal-mcp-server/actions/workflows/agent-link.yml/badge.svg)](https://github.com/Jay1023CN/pal-mcp-server/actions/workflows/agent-link.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 
-  [PAL in action](https://github.com/user-attachments/assets/0d26061e-5f21-4ab1-b7d0-f883ddc2c3da)
+[安装与配置](docs/agent-link.md) · [验证记录](docs/agent-link-release.md) · [上游 PAL 文档](README.upstream.md) · [反馈问题](https://github.com/Jay1023CN/pal-mcp-server/issues)
 
-👉 **[Watch more examples](#-watch-tools-in-action)**
+## 能接哪些客户端
 
-### Your CLI + Multiple Models = Your AI Dev Team
+| 客户端 | 接入方式 | 当前验证 |
+| --- | --- | --- |
+| Antigravity | 桌面本地 RPC，连接桌面会话 | 已验证消息往返和临时文件写入 |
+| OpenCode | 本机 HTTP 服务，适配 1.x / 2.x | 已验证 2.x 真实消息往返；1.x 待实测 |
+| Qoder | 官方 ACP CLI 代理 | 已验证真实消息往返 |
+| Qoder CN | 国内版独立 ACP CLI 代理 | 已验证真实消息往返 |
+| WorkBuddy | 官方本地助理 Open API | 契约测试通过，真实 OAuth 联调待完成 |
+| Codex CLI / Claude Code / Gemini CLI | 上游 `clink` | 保留上游实现，未在本分支逐项重新验收 |
 
-**Use the 🤖 CLI you love:**  
-[Claude Code](https://www.anthropic.com/claude-code) · [Gemini CLI](https://github.com/google-gemini/gemini-cli) · [Codex CLI](https://github.com/openai/codex) · [Qwen Code CLI](https://qwenlm.github.io/qwen-code-docs/) · [Cursor](https://cursor.com) · _and more_
+Antigravity 接的是桌面程序的会话后端，不需要桌面点击，也不会回退到无界面的 Antigravity CLI。Qoder 和 Qoder CN 目前通过 ACP 启动代理进程，不接管 IDE 中已有的聊天窗口。WorkBuddy 需要官方 OAuth 授权和在线的本地助理。
 
-**With multiple models within a single prompt:**  
-Gemini · OpenAI · Anthropic · Grok · Azure · Ollama · OpenRouter · DIAL · On-Device Model
+## 快速开始
 
-</div>
+需要 **Python 3.10+**，以及你要调用的客户端或 CLI。先在对应客户端完成登录；各代理可以单独使用，不必全部安装。
 
----
-
-## 🆕 Now with CLI-to-CLI Bridge
-
-The new **[`clink`](docs/tools/clink.md)** (CLI + Link) tool connects external AI CLIs directly into your workflow:
-
-- **Connect external CLIs** like [Gemini CLI](https://github.com/google-gemini/gemini-cli), [Codex CLI](https://github.com/openai/codex), and [Claude Code](https://www.anthropic.com/claude-code) directly into your workflow
-- **CLI Subagents** - Launch isolated CLI instances from _within_ your current CLI! Claude Code can spawn Codex subagents, Codex can spawn Gemini CLI subagents, etc. Offload heavy tasks (code reviews, bug hunting) to fresh contexts while your main session's context window remains unpolluted. Each subagent returns only final results.
-- **Context Isolation** - Run separate investigations without polluting your primary workspace
-- **Role Specialization** - Spawn `planner`, `codereviewer`, or custom role agents with specialized system prompts
-- **Full CLI Capabilities** - Web search, file inspection, MCP tool access, latest documentation lookups
-- **Seamless Continuity** - Sub-CLIs participate as first-class members with full conversation context between tools
-
-```bash
-# Codex spawns Codex subagent for isolated code review in fresh context
-clink with codex codereviewer to audit auth module for security issues
-# Subagent reviews in isolation, returns final report without cluttering your context as codex reads each file and walks the directory structure
-
-# Consensus from different AI models → Implementation handoff with full context preservation between tools
-Use consensus with gpt-5 and gemini-pro to decide: dark mode or offline support next
-Continue with clink gemini - implement the recommended feature
-# Gemini receives full debate context and starts coding immediately
-```
-
-👉 **[Learn more about clink](docs/tools/clink.md)**
-
----
-
-## Why PAL MCP?
-
-**Why rely on one AI model when you can orchestrate them all?**
-
-A Model Context Protocol server that supercharges tools like [Claude Code](https://www.anthropic.com/claude-code), [Codex CLI](https://developers.openai.com/codex/cli), and IDE clients such
-as [Cursor](https://cursor.com) or the [Claude Dev VS Code extension](https://marketplace.visualstudio.com/items?itemName=Anthropic.claude-vscode). **PAL MCP connects your favorite AI tool
-to multiple AI models** for enhanced code analysis, problem-solving, and collaborative development.
-
-### True AI Collaboration with Conversation Continuity
-
-PAL supports **conversation threading** so your CLI can **discuss ideas with multiple AI models, exchange reasoning, get second opinions, and even run collaborative debates between models** to help you reach deeper insights and better solutions.
-
-Your CLI always stays in control but gets perspectives from the best AI for each subtask. Context carries forward seamlessly across tools and models, enabling complex workflows like: code reviews with multiple models → automated planning → implementation → pre-commit validation.
-
-> **You're in control.** Your CLI of choice orchestrates the AI team, but you decide the workflow. Craft powerful prompts that bring in Gemini Pro, GPT 5, Flash, or local offline models exactly when needed.
-
-<details>
-<summary><b>Reasons to Use PAL MCP</b></summary>
-
-A typical workflow with Claude Code as an example:
-
-1. **Multi-Model Orchestration** - Claude coordinates with Gemini Pro, O3, GPT-5, and 50+ other models to get the best analysis for each task
-
-2. **Context Revival Magic** - Even after Claude's context resets, continue conversations seamlessly by having other models "remind" Claude of the discussion
-
-3. **Guided Workflows** - Enforces systematic investigation phases that prevent rushed analysis and ensure thorough code examination
-
-4. **Extended Context Windows** - Break Claude's limits by delegating to Gemini (1M tokens) or O3 (200K tokens) for massive codebases
-
-5. **True Conversation Continuity** - Full context flows across tools and models - Gemini remembers what O3 said 10 steps ago
-
-6. **Model-Specific Strengths** - Extended thinking with Gemini Pro, blazing speed with Flash, strong reasoning with O3, privacy with local Ollama
-
-7. **Professional Code Reviews** - Multi-pass analysis with severity levels, actionable feedback, and consensus from multiple AI experts
-
-8. **Smart Debugging Assistant** - Systematic root cause analysis with hypothesis tracking and confidence levels
-
-9. **Automatic Model Selection** - Claude intelligently picks the right model for each subtask (or you can specify)
-
-10. **Vision Capabilities** - Analyze screenshots, diagrams, and visual content with vision-enabled models
-
-11. **Local Model Support** - Run Llama, Mistral, or other models locally for complete privacy and zero API costs
-
-12. **Bypass MCP Token Limits** - Automatically works around MCP's 25K limit for large prompts and responses
-
-**The Killer Feature:** When Claude's context resets, just ask to "continue with O3" - the other model's response magically revives Claude's understanding without re-ingesting documents!
-
-#### Example: Multi-Model Code Review Workflow
-
-1. `Perform a codereview using gemini pro and o3 and use planner to generate a detailed plan, implement the fixes and do a final precommit check by continuing from the previous codereview`
-2. This triggers a [`codereview`](docs/tools/codereview.md) workflow where Claude walks the code, looking for all kinds of issues
-3. After multiple passes, collects relevant code and makes note of issues along the way
-4. Maintains a `confidence` level between `exploring`, `low`, `medium`, `high` and `certain` to track how confidently it's been able to find and identify issues
-5. Generates a detailed list of critical -> low issues
-6. Shares the relevant files, findings, etc with **Gemini Pro** to perform a deep dive for a second [`codereview`](docs/tools/codereview.md)
-7. Comes back with a response and next does the same with o3, adding to the prompt if a new discovery comes to light
-8. When done, Claude takes in all the feedback and combines a single list of all critical -> low issues, including good patterns in your code. The final list includes new findings or revisions in case Claude misunderstood or missed something crucial and one of the other models pointed this out
-9. It then uses the [`planner`](docs/tools/planner.md) workflow to break the work down into simpler steps if a major refactor is required
-10. Claude then performs the actual work of fixing highlighted issues
-11. When done, Claude returns to Gemini Pro for a [`precommit`](docs/tools/precommit.md) review
-
-All within a single conversation thread! Gemini Pro in step 11 _knows_ what was recommended by O3 in step 7! Taking that context
-and review into consideration to aid with its final pre-commit review.
-
-**Think of it as Claude Code _for_ Claude Code.** This MCP isn't magic. It's just **super-glue**.
-
-> **Remember:** Claude stays in full control — but **YOU** call the shots.
-> PAL is designed to have Claude engage other models only when needed — and to follow through with meaningful back-and-forth.
-> **You're** the one who crafts the powerful prompt that makes Claude bring in Gemini, Flash, O3 — or fly solo.
-> You're the guide. The prompter. The puppeteer.
-> #### You are the AI - **Actually Intelligent**.
-</details>
-
-#### Recommended AI Stack
-
-<details>
-<summary>For Claude Code Users</summary>
-
-For best results when using [Claude Code](https://claude.ai/code):  
-
-- **Sonnet 4.5** - All agentic work and orchestration
-- **Gemini 3.0 Pro** OR **GPT-5.2 / Pro** - Deep thinking, additional code reviews, debugging and validations, pre-commit analysis
-</details>
-
-<details>
-<summary>For Codex Users</summary>
-
-For best results when using [Codex CLI](https://developers.openai.com/codex/cli):  
-
-- **GPT-5.2 Codex Medium** - All agentic work and orchestration
-- **Gemini 3.0 Pro** OR **GPT-5.2-Pro** - Deep thinking, additional code reviews, debugging and validations, pre-commit analysis
-</details>
-
-## Quick Start (5 minutes)
-
-**Prerequisites:** Python 3.10+, Git, [uv installed](https://docs.astral.sh/uv/getting-started/installation/)
-
-**1. Get API Keys** (choose one or more):
-- **[OpenRouter](https://openrouter.ai/)** - Access multiple models with one API
-- **[Gemini](https://makersuite.google.com/app/apikey)** - Google's latest models
-- **[OpenAI](https://platform.openai.com/api-keys)** - O3, GPT-5 series
-- **[Azure OpenAI](https://learn.microsoft.com/azure/ai-services/openai/)** - Enterprise deployments of GPT-4o, GPT-4.1, GPT-5 family
-- **[X.AI](https://console.x.ai/)** - Grok models
-- **[DIAL](https://dialx.ai/)** - Vendor-agnostic model access
-- **[Ollama](https://ollama.ai/)** - Local models (free)
-
-**2. Install** (choose one):
-
-**Option A: Clone and Automatic Setup** (recommended)
-```bash
-git clone https://github.com/BeehiveInnovations/pal-mcp-server.git
+```sh
+git clone https://github.com/Jay1023CN/pal-mcp-server.git
 cd pal-mcp-server
-
-# Handles everything: setup, config, API keys from system environment. 
-# Auto-configures Claude Desktop, Claude Code, Gemini CLI, Codex CLI, Qwen CLI
-# Enable / disable additional settings in .env
-./run-server.sh  
+python -m venv .venv
 ```
 
-**Option B: Instant Setup with [uvx](https://docs.astral.sh/uv/getting-started/installation/)**
+激活虚拟环境：
+
+```powershell
+# Windows PowerShell
+.\.venv\Scripts\Activate.ps1
+```
+
+```sh
+# macOS / Linux
+source .venv/bin/activate
+```
+
+安装并检查连接：
+
+```sh
+python -m pip install .
+pal-agent-link --check
+```
+
+在支持 stdio MCP 的客户端中添加：
+
 ```json
-// Add to ~/.claude/settings.json or .mcp.json
-// Don't forget to add your API keys under env
 {
   "mcpServers": {
-    "pal": {
-      "command": "bash",
-      "args": ["-c", "for p in $(which uvx 2>/dev/null) $HOME/.local/bin/uvx /opt/homebrew/bin/uvx /usr/local/bin/uvx uvx; do [ -x \"$p\" ] && exec \"$p\" --from git+https://github.com/BeehiveInnovations/pal-mcp-server.git pal-mcp-server; done; echo 'uvx not found' >&2; exit 1"],
+    "pal-agent-link": {
+      "command": "pal-mcp-server",
       "env": {
-        "PATH": "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:~/.local/bin",
-        "GEMINI_API_KEY": "your-key-here",
-        "DISABLED_TOOLS": "analyze,refactor,testgen,secaudit,docgen,tracer",
-        "DEFAULT_MODEL": "auto"
+        "PAL_AGENT_ONLY": "1",
+        "PYTHONUTF8": "1"
       }
     }
   }
 }
 ```
 
-**3. Start Using!**
-```
-"Use pal to analyze this code for security issues with gemini pro"
-"Debug this error with o3 and then get flash to suggest optimizations"
-"Plan the migration strategy with pal, get consensus from multiple models"
-"clink with cli_name=\"gemini\" role=\"planner\" to draft a phased rollout plan"
-```
+如果 MCP 客户端找不到这个命令，把 `command` 换成虚拟环境里 `pal-mcp-server` 的绝对路径：Windows 位于 `.venv/Scripts/`，macOS / Linux 位于 `.venv/bin/`。客户端通常不会继承终端中刚激活的虚拟环境。
 
-👉 **[Complete Setup Guide](docs/getting-started.md)** with detailed installation, configuration for Gemini / Codex / Qwen, and troubleshooting
-👉 **[Cursor & VS Code Setup](docs/getting-started.md#ide-clients)** for IDE integration instructions
-📺 **[Watch tools in action](#-watch-tools-in-action)** to see real-world examples
+`PAL_AGENT_ONLY=1` 启用代理模式，不需要 PAL 的模型供应商 API Key；被调用的客户端仍需具备自己的登录态和可用模型。移除该变量并按[上游说明](README.upstream.md)配置供应商，即可使用完整 PAL 工具。当前 fork 尚未发布到 PyPI，请从本仓库安装。
 
-## Provider Configuration
+## 怎样协作
 
-PAL activates any provider that has credentials in your `.env`. See `.env.example` for deeper customization.
+向 MCP 客户端提出任务，例如：
 
-## Core Tools
+> 检查当前可用的编码代理。让 Qoder 检查后端接口，让 OpenCode 检查前端调用，各自提交问题清单。先不要改文件，最后汇总两边结果。
 
-> **Note:** Each tool comes with its own multi-step workflow, parameters, and descriptions that consume valuable context window space even when not in use. To optimize performance, some tools are disabled by default. See [Tool Configuration](#tool-configuration) below to enable them.
+客户端可通过 PAL 原生工具 `agentlink` 完成以下步骤：
 
-**Collaboration & Planning** *(Enabled by default)*
-- **[`clink`](docs/tools/clink.md)** - Bridge requests to external AI CLIs (Gemini planner, codereviewer, etc.)
-- **[`chat`](docs/tools/chat.md)** - Brainstorm ideas, get second opinions, validate approaches. With capable models (GPT-5.2 Pro, Gemini 3.0 Pro), generates complete code / implementation
-- **[`thinkdeep`](docs/tools/thinkdeep.md)** - Extended reasoning, edge case analysis, alternative perspectives
-- **[`planner`](docs/tools/planner.md)** - Break down complex projects into structured, actionable plans
-- **[`consensus`](docs/tools/consensus.md)** - Get expert opinions from multiple AI models with stance steering
+| action | 用途 |
+| --- | --- |
+| `status` | 检查可用连接 |
+| `sessions` / `models` | 查询目标代理的会话或模型 |
+| `create` | 为指定工作目录创建会话 |
+| `send` | 提交任务或继续对话 |
+| `read` / `wait` | 读取输出、等待进展 |
+| `permissions` / `permission_reply` | 查看和回答 ACP 权限请求 |
 
-**Code Analysis & Quality**
-- **[`debug`](docs/tools/debug.md)** - Systematic investigation and root cause analysis
-- **[`precommit`](docs/tools/precommit.md)** - Validate changes before committing, prevent regressions
-- **[`codereview`](docs/tools/codereview.md)** - Professional reviews with severity levels and actionable feedback
-- **[`analyze`](docs/tools/analyze.md)** *(disabled by default - [enable](#tool-configuration))* - Understand architecture, patterns, dependencies across entire codebases
+例如查询连接：
 
-**Development Tools** *(Disabled by default - [enable](#tool-configuration))*
-- **[`refactor`](docs/tools/refactor.md)** - Intelligent code refactoring with decomposition focus
-- **[`testgen`](docs/tools/testgen.md)** - Comprehensive test generation with edge cases
-- **[`secaudit`](docs/tools/secaudit.md)** - Security audits with OWASP Top 10 analysis
-- **[`docgen`](docs/tools/docgen.md)** - Generate documentation with complexity analysis
-
-**Utilities**
-- **[`apilookup`](docs/tools/apilookup.md)** - Forces current-year API/SDK documentation lookups in a sub-process (saves tokens within the current context window), prevents outdated training data responses
-- **[`challenge`](docs/tools/challenge.md)** - Prevent "You're absolutely right!" responses with critical analysis
-- **[`tracer`](docs/tools/tracer.md)** *(disabled by default - [enable](#tool-configuration))* - Static analysis prompts for call-flow mapping
-
-<details>
-<summary><b id="tool-configuration">👉 Tool Configuration</b></summary>
-
-### Default Configuration
-
-To optimize context window usage, only essential tools are enabled by default:
-
-**Enabled by default:**
-- `chat`, `thinkdeep`, `planner`, `consensus` - Core collaboration tools
-- `codereview`, `precommit`, `debug` - Essential code quality tools
-- `apilookup` - Rapid API/SDK information lookup
-- `challenge` - Critical thinking utility
-
-**Disabled by default:**
-- `analyze`, `refactor`, `testgen`, `secaudit`, `docgen`, `tracer`
-
-### Enabling Additional Tools
-
-To enable additional tools, remove them from the `DISABLED_TOOLS` list:
-
-**Option 1: Edit your .env file**
-```bash
-# Default configuration (from .env.example)
-DISABLED_TOOLS=analyze,refactor,testgen,secaudit,docgen,tracer
-
-# To enable specific tools, remove them from the list
-# Example: Enable analyze tool
-DISABLED_TOOLS=refactor,testgen,secaudit,docgen,tracer
-
-# To enable ALL tools
-DISABLED_TOOLS=
-```
-
-**Option 2: Configure in MCP settings**
 ```json
-// In ~/.claude/settings.json or .mcp.json
-{
-  "mcpServers": {
-    "pal": {
-      "env": {
-        // Tool configuration
-        "DISABLED_TOOLS": "refactor,testgen,secaudit,docgen,tracer",
-        "DEFAULT_MODEL": "pro",
-        "DEFAULT_THINKING_MODE_THINKDEEP": "high",
-        
-        // API configuration
-        "GEMINI_API_KEY": "your-gemini-key",
-        "OPENAI_API_KEY": "your-openai-key",
-        "OPENROUTER_API_KEY": "your-openrouter-key",
-        
-        // Logging and performance
-        "LOG_LEVEL": "INFO",
-        "CONVERSATION_TIMEOUT_HOURS": "6",
-        "MAX_CONVERSATION_TURNS": "50"
-      }
-    }
-  }
-}
+{"action": "status"}
 ```
 
-**Option 3: Enable all tools**
+创建 Qoder 会话，`workspace` 填你自己机器上已存在的绝对目录：
+
 ```json
-// Remove or empty the DISABLED_TOOLS to enable everything
-{
-  "mcpServers": {
-    "pal": {
-      "env": {
-        "DISABLED_TOOLS": ""
-      }
-    }
-  }
-}
+{"action": "create", "agent": "qoder", "workspace": "/absolute/path/to/project"}
 ```
 
-**Note:**
-- Essential tools (`version`, `listmodels`) cannot be disabled
-- After changing tool configuration, restart your Claude session for changes to take effect
-- Each tool adds to context window usage, so only enable what you need
+后续使用返回的 `session_id` 提交任务并读取结果。通过 PAL 工具指定目标模型时，参数名是 `agent_model`。若使用独立的 `pal-agent-link` 入口，则会暴露多项 `agent_*` 工具；两种入口的参数见[详细说明](docs/agent-link.md)。
 
-</details>
+任务被接收不代表已经完成，需继续读取状态和输出。多个代理写代码时要划分文件范围；当前版本不提供自动分工、文件锁或冲突合并。ACP 会话保存在当前 MCP 进程内，重启后暂不自动恢复。
 
-## 📺 Watch Tools In Action
+## 配置与兼容性
 
-<details>
-<summary><b>Chat Tool</b> - Collaborative decision making and multi-turn conversations</summary>
+默认从标准用户目录、PATH 和本机进程发现客户端，不绑定开发者的用户名、盘符或固定服务端口。特殊安装可通过 `AGENT_LINK_CONFIG` 指定 JSON 配置；WorkBuddy 通过 `WORKBUDDY_ACCESS_TOKEN` 提供授权。完整配置见[接入说明](docs/agent-link.md#自动发现与可选配置)。
 
-**Picking Redis vs Memcached:**
+真实客户端验证目前在 Windows 上完成。Linux、macOS 和 Windows 的 Python 3.10 / 3.12 契约测试已通过 [GitHub Actions](https://github.com/Jay1023CN/pal-mcp-server/actions/workflows/agent-link.yml)，不等同于这些系统上的真实客户端验收。Antigravity 内部 RPC 和 OpenCode 实验接口可能随客户端版本变化。
 
-[Chat Redis or Memcached_web.webm](https://github.com/user-attachments/assets/41076cfe-dd49-4dfc-82f5-d7461b34705d)
+## 开发与反馈
 
-**Multi-turn conversation with continuation:**
-
-[Chat With Gemini_web.webm](https://github.com/user-attachments/assets/37bd57ca-e8a6-42f7-b5fb-11de271e95db)
-
-</details>
-
-<details>
-<summary><b>Consensus Tool</b> - Multi-model debate and decision making</summary>
-
-**Multi-model consensus debate:**
-
-[PAL Consensus Debate](https://github.com/user-attachments/assets/76a23dd5-887a-4382-9cf0-642f5cf6219e)
-
-</details>
-
-<details>
-<summary><b>PreCommit Tool</b> - Comprehensive change validation</summary>
-
-**Pre-commit validation workflow:**
-
-<div align="center">
-  <img src="https://github.com/user-attachments/assets/584adfa6-d252-49b4-b5b0-0cd6e97fb2c6" width="950">
-</div>
-
-</details>
-
-<details>
-<summary><b>API Lookup Tool</b> - Current vs outdated API documentation</summary>
-
-**Without PAL - outdated APIs:**
-
-[API without PAL](https://github.com/user-attachments/assets/01a79dc9-ad16-4264-9ce1-76a56c3580ee)
-
-**With PAL - current APIs:**
-
-[API with PAL](https://github.com/user-attachments/assets/5c847326-4b66-41f7-8f30-f380453dce22)
-
-</details>
-
-<details>
-<summary><b>Challenge Tool</b> - Critical thinking vs reflexive agreement</summary>
-
-**Without PAL:**
-
-![without_pal@2x](https://github.com/user-attachments/assets/64f3c9fb-7ca9-4876-b687-25e847edfd87)
-
-**With PAL:**
-
-![with_pal@2x](https://github.com/user-attachments/assets/9d72f444-ba53-4ab1-83e5-250062c6ee70)
-
-</details>
-
-## Key Features
-
-**AI Orchestration**
-- **Auto model selection** - Claude picks the right AI for each task
-- **Multi-model workflows** - Chain different models in single conversations
-- **Conversation continuity** - Context preserved across tools and models
-- **[Context revival](docs/context-revival.md)** - Continue conversations even after context resets
-
-**Model Support**
-- **Multiple providers** - Gemini, OpenAI, Azure, X.AI, OpenRouter, DIAL, Ollama
-- **Latest models** - GPT-5, Gemini 3.0 Pro, O3, Grok-4, local Llama
-- **[Thinking modes](docs/advanced-usage.md#thinking-modes)** - Control reasoning depth vs cost
-- **Vision support** - Analyze images, diagrams, screenshots
-
-**Developer Experience**
-- **Guided workflows** - Systematic investigation prevents rushed analysis
-- **Smart file handling** - Auto-expand directories, manage token limits
-- **Web search integration** - Access current documentation and best practices
-- **[Large prompt support](docs/advanced-usage.md#working-with-large-prompts)** - Bypass MCP's 25K token limit
-
-## Example Workflows
-
-**Multi-model Code Review:**
+```sh
+python -m pip install -e .
+python -m pip install -r requirements-dev.txt
+python -m pytest tests/test_agentlink_contracts.py tests/test_agentlink_tool.py -q
 ```
-"Perform a codereview using gemini pro and o3, then use planner to create a fix strategy"
-```
-→ Claude reviews code systematically → Consults Gemini Pro → Gets O3's perspective → Creates unified action plan
 
-**Collaborative Debugging:**
-```
-"Debug this race condition with max thinking mode, then validate the fix with precommit"
-```
-→ Deep investigation → Expert analysis → Solution implementation → Pre-commit validation
+新增 15 项测试覆盖适配器契约、工具参数、ACP 权限和 HTTP 请求边界。PAL 全量测试在本机仍有路径与 shell 环境检测失败，结果见[验证记录](docs/agent-link-release.md)。
 
-**Architecture Planning:**
-```
-"Plan our microservices migration, get consensus from pro and o3 on the approach"
-```
-→ Structured planning → Multiple expert opinions → Consensus building → Implementation roadmap
+反馈时请提供操作系统、客户端版本、接入方式和错误信息。问题提交到[本 fork 的 Issues](https://github.com/Jay1023CN/pal-mcp-server/issues)；不要附上 token、登录配置或私人会话。
 
-👉 **[Advanced Usage Guide](docs/advanced-usage.md)** for complex workflows, model configuration, and power-user features
+## 上游与许可
 
-## Quick Links
+本项目是 [BeehiveInnovations/pal-mcp-server](https://github.com/BeehiveInnovations/pal-mcp-server) 的非官方 fork，使用 [Apache-2.0](LICENSE) 许可证，保留上游版权与原有工具。
 
-**📖 Documentation**
-- [Docs Overview](docs/index.md) - High-level map of major guides
-- [Getting Started](docs/getting-started.md) - Complete setup guide
-- [Tools Reference](docs/tools/) - All tools with examples
-- [Advanced Usage](docs/advanced-usage.md) - Power user features
-- [Configuration](docs/configuration.md) - Environment variables, restrictions
-- [Adding Providers](docs/adding_providers.md) - Provider-specific setup (OpenAI, Azure, custom gateways)
-- [Model Ranking Guide](docs/model_ranking.md) - How intelligence scores drive auto-mode suggestions
-
-**🔧 Setup & Support**
-- [WSL Setup](docs/wsl-setup.md) - Windows users
-- [Troubleshooting](docs/troubleshooting.md) - Common issues
-- [Contributing](docs/contributions.md) - Code standards, PR process
-
-## License
-
-Apache 2.0 License - see [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-Built with the power of **Multi-Model AI** collaboration 🤝
-- **A**ctual **I**ntelligence by real Humans
-- [MCP (Model Context Protocol)](https://modelcontextprotocol.com)
-- [Codex CLI](https://developers.openai.com/codex/cli)
-- [Claude Code](https://claude.ai/code)
-- [Gemini](https://ai.google.dev/)
-- [OpenAI](https://openai.com/)
-- [Azure OpenAI](https://learn.microsoft.com/azure/ai-services/openai/)
-
-### Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=BeehiveInnovations/pal-mcp-server&type=Date)](https://www.star-history.com/#BeehiveInnovations/pal-mcp-server&Date)
+本分支新增代码主要位于 `agent_link/` 和 `tools/agentlink.py`。上游 README 保存在 [README.upstream.md](README.upstream.md)，方便查阅原有 PAL 功能。项目与上述客户端厂商无隶属关系。

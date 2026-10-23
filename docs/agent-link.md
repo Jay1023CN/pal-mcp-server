@@ -38,7 +38,25 @@ pal-agent-link --check
 
 客户端需要能在 PATH 中找到 `pal-mcp-server`。使用虚拟环境时，可在**用户自己的配置**中填写该环境的可执行文件路径；项目源码和示例不绑定某个人的目录。当前尚未发布到 PyPI。
 
-## 工具
+## PAL 原生工具
+
+使用首页的 `pal-mcp-server` 配置时，统一通过 `agentlink` 调用，参数 `action` 决定操作：
+
+| action | 主要参数 |
+| --- | --- |
+| `status` | 无，查询所有代理 |
+| `sessions` / `models` | `agent`，会话查询可加 `limit` |
+| `create` | `agent`、`workspace`，可加 `title`、`agent_model` |
+| `send` | `agent`、`session_id`、`prompt` |
+| `read` / `wait` | `agent`、`session_id`，分别可加 `limit` / `seconds` |
+| `permissions` | `agent`、`session_id` |
+| `permission_reply` | `agent`、`permission_id`、`option_id`；省略 option_id 表示取消 |
+
+`agent` 可取 `antigravity`、`opencode`、`qoder`、`qodercn`、`workbuddy`。`workspace` 必须是本机已存在的绝对目录。Antigravity 创建会话需要指定 `agent_model`；先用 `models` 查询。OpenCode 模型格式为 `provider/model`。WorkBuddy 仅使用固定的本地助理会话，其工作目录和模型在客户端中设置。
+
+## 独立桥接入口
+
+若只需这些适配器，可以把 MCP 配置中的 command 改为 `pal-agent-link`，无需设置 `PAL_AGENT_ONLY`。这个入口不加载 PAL 原有工具，会暴露以下工具；创建会话时模型参数名为 `model`：
 
 - `agents_status`：查询连接状态。ACP 握手成功只说明协议可用，不代表账号或模型可执行任务。
 - `agent_sessions` / `agent_models`：查询会话和模型。
@@ -53,7 +71,7 @@ pal-agent-link --check
 
 默认通过用户标准目录、XDG 目录、PATH 和本机进程元数据发现接口。Antigravity 的令牌仅在内存中使用；OpenCode 从它自己的 service.json 读取本机服务信息，不读取模型供应商 auth.json。
 
-所有代理均为可选。没安装某个客户端不会阻止其他客户端使用。特殊安装方式可以设置 `AGENT_LINK_CONFIG`，或传入 `--config config.local.json`：
+所有代理均为可选。没安装某个客户端不会阻止其他客户端使用。特殊安装方式可以设置 `AGENT_LINK_CONFIG` 指向配置文件；独立入口也支持 `pal-agent-link --config config.local.json`。配置内容示例：
 
 ```json
 {
@@ -99,11 +117,6 @@ python scripts/agentlink_smoke.py --workspace /absolute/path/to/scratch --agents
 
 该测试会创建真实会话，但只要求固定文字回复，不修改项目文件。需要 ACP 权限测试时，运行 tests 中的本地测试即可，不会调用真实账号。
 
-项目包含 Apache-2.0 许可、配置示例和跨平台 GitHub Actions 测试配置；Actions 尚未在远程仓库运行。发布前只上传本项目源码，不上传用户配置、登录态、真实测试会话或 `work/` 目录。
+项目使用 Apache-2.0 许可证。新增契约测试已在 GitHub Actions 的 Windows、Linux、macOS 上通过，覆盖 Python 3.10 / 3.12。真实客户端验证情况见[验证记录](agent-link-release.md)。用户配置、登录态和真实测试会话不属于发布内容。
 
 接口参考：[Qoder ACP](https://docs.qoder.com/cli/acp)、[Qoder CN 参数](https://docs.qoder.cn/cli/cli-reference)、[OpenCode Server](https://opencode.ai/docs/server/)、[WorkBuddy Open API](https://open.workbuddy.cn/docs/openapi)。OpenCode 2.x 的本次适配同时核对了客户端自带的 HTTP 客户端代码。
-
-
-## PAL integration
-
-PAL exposes one native tool, gentlink, with action values: status, sessions, models, create, send, read, wait, permissions, permission_reply. Use gent_model to select the target agent model. The separate pal-agent-link entry point exposes the gent_* tools listed above. Set PAL_AGENT_ONLY=1 for PAL without provider API keys. This is an unofficial Apache-2.0 fork; see [release notes](agent-link-release.md).
