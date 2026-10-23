@@ -57,6 +57,15 @@ class TestPathTraversalFix:
         assert is_dangerous_path(Path("/tmp/etcbackup")) is False
         assert is_dangerous_path(Path("/tmp/my_etc_files")) is False
 
+    def test_system_path_siblings_allowed(self):
+        """A system directory name must match a complete path component."""
+        for sibling in ("/etcbackup", "/usr-local", "/variety"):
+            assert is_dangerous_path(Path(sibling).resolve()) is False
+
+    def test_parent_traversal_into_system_directory_blocked(self):
+        """Normalize dot segments before checking native system paths."""
+        assert is_dangerous_path(Path("/tmp/../etc/ssh/config")) is True
+
 
 class TestHomeDirectoryHandling:
     """Test that home directory containers are handled correctly.

@@ -118,7 +118,7 @@ python -m pip install -r requirements-dev.txt
 python -m pytest tests/test_agentlink_contracts.py tests/test_agentlink_tool.py -q
 ```
 
-新增 15 项测试覆盖适配器契约、工具参数、ACP 权限和 HTTP 请求边界。PAL 全量测试在本机仍有路径与 shell 环境检测失败，结果见[验证记录](docs/agent-link-release.md)。
+新增 15 项测试覆盖适配器契约、工具参数、ACP 权限和 HTTP 请求边界。此前的 12 项路径及 shell 测试失败已修复；本机非 integration 测试为 883 项通过、4 项跳过、0 项失败，另有 16 项 integration 测试未运行。详情见[验证记录](docs/agent-link-release.md)。
 
 反馈时请提供操作系统、客户端版本、接入方式和错误信息。问题提交到[本 fork 的 Issues](https://github.com/Jay1023CN/pal-mcp-server/issues)；不要附上 token、登录配置或私人会话。
 

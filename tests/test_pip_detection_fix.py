@@ -5,6 +5,7 @@ and don't break existing functionality.
 """
 
 import os
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -12,12 +13,30 @@ from pathlib import Path
 import pytest
 
 
+@pytest.fixture(scope="module")
+def bash_executable():
+    """Use Git Bash on Windows rather than assuming bash is on PATH."""
+    candidates = []
+    if os.name == "nt":
+        git = shutil.which("git")
+        if git:
+            git_root = Path(git).resolve().parent.parent
+            candidates.extend([git_root / "bin/bash.exe", git_root / "usr/bin/bash.exe"])
+    on_path = shutil.which("bash")
+    if on_path:
+        candidates.append(Path(on_path))
+    for candidate in candidates:
+        if candidate.is_file():
+            return str(candidate)
+    pytest.skip("Bash is required for shell script tests; install Bash or Git for Windows.")
+
+
 class TestPipDetectionFix:
     """Test cases for issue #188: PIP is available but not recognized."""
 
-    def test_run_server_script_syntax_valid(self):
+    def test_run_server_script_syntax_valid(self, bash_executable):
         """Test that run-server.sh has valid bash syntax."""
-        result = subprocess.run(["bash", "-n", "./run-server.sh"], capture_output=True, text=True)
+        result = subprocess.run([bash_executable, "-n", "./run-server.sh"], capture_output=True, text=True)
         assert result.returncode == 0, f"Syntax error in run-server.sh: {result.stderr}"
 
     def test_run_server_has_proper_shebang(self):
@@ -33,7 +52,7 @@ class TestPipDetectionFix:
         for func in critical_functions:
             assert f"{func}()" in content, f"Critical function {func}() not found in script"
 
-    def test_pip_detection_consistency_issue(self):
+    def test_pip_detection_consistency_issue(self, bash_executable):
         """Test the specific issue: pip works in setup_venv but fails in install_dependencies.
 
         This test verifies that our fix ensures consistent Python executable paths.
@@ -46,7 +65,7 @@ class TestPipDetectionFix:
         assert 'cd "$(dirname' in content, "Should convert to absolute path"
 
         # Test successful completion - our fix should make the script more robust
-        result = subprocess.run(["bash", "-n", "./run-server.sh"], capture_output=True, text=True)
+        result = subprocess.run([bash_executable, "-n", "./run-server.sh"], capture_output=True, text=True)
         assert result.returncode == 0, "Script should have valid syntax after our fix"
 
     def test_pip_detection_with_non_interactive_shell(self):
@@ -100,7 +119,7 @@ class TestPipDetectionFix:
         for pattern in expected_diagnostic_patterns:
             assert pattern in content, f"Enhanced diagnostic pattern '{pattern}' should be in script"
 
-    def test_setup_env_file_does_not_create_bsd_backup(self, tmp_path):
+    def test_setup_env_file_does_not_create_bsd_backup(self, tmp_path, bash_executable):
         """Ensure setup_env_file avoids creating .env'' artifacts (BSD sed behavior)."""
         script_path = Path("./run-server.sh").resolve()
 
@@ -112,12 +131,12 @@ class TestPipDetectionFix:
         # Run setup_env_file inside isolated shell session
         command = f"""
         set -e
-        cd "{tmp_path}"
-        source "{script_path}"
+        cd "{tmp_path.as_posix()}"
+        source "{script_path.as_posix()}"
         setup_env_file
         """
         env = os.environ.copy()
-        subprocess.run(["bash", "-lc", command], check=True, env=env, text=True)
+        subprocess.run([bash_executable, "-lc", command], check=True, env=env, text=True)
 
         artifacts = {p.name for p in tmp_path.glob(".env*")}
         assert ".env''" not in artifacts, "setup_env_file should not create BSD sed backup artifacts"

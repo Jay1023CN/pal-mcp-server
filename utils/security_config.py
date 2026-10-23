@@ -123,9 +123,10 @@ def is_dangerous_path(path: Path) -> bool:
 
         def _dangerous_variants(p: Path) -> set[Path]:
             variants = {p}
-            # Only resolve paths that are absolute on the current platform.
+            # Resolve rooted paths too: Windows /etc has a root but no drive,
+            # so is_absolute() is false even though resolve() selects a drive.
             # This avoids turning Windows-style strings into nonsense absolute paths on POSIX.
-            if p.is_absolute():
+            if p.root:
                 try:
                     variants.add(p.resolve())
                 except Exception:
