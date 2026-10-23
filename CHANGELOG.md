@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v9.9.1 (2026-10-23)
+
+### Bug Fixes
+
+- **paths**: 修复 Windows 路径保护与跨平台测试
+  ([`3792713`](https://github.com/Jay1023CN/pal-mcp-server/commit/3792713c7fa236216730fd090ff7422acad265d3))
+
+### Chores
+
+- Sync version to config.py [skip ci]
+  ([`ff15e6f`](https://github.com/Jay1023CN/pal-mcp-server/commit/ff15e6fd73fc424fa6530ef00882c7fa96025f6a))
+
+
 ## v9.9.0 (2026-10-23)
 
 ### Chores
