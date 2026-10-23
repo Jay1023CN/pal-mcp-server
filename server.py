@@ -67,6 +67,7 @@ from tools import (  # noqa: E402
     TracerTool,
     VersionTool,
 )
+from tools.agentlink import AgentLinkTool  # noqa: E402
 from tools.models import ToolOutput  # noqa: E402
 from tools.shared.exceptions import ToolExecutionError  # noqa: E402
 from utils.env import env_override_enabled, get_env  # noqa: E402
@@ -261,6 +262,7 @@ def filter_disabled_tools(all_tools: dict[str, Any]) -> dict[str, Any]:
 TOOLS = {
     "chat": ChatTool(),  # Interactive development chat and brainstorming
     "clink": CLinkTool(),  # Bridge requests to configured AI CLIs
+    "agentlink": AgentLinkTool(),  # Fork: desktop sessions and official ACP/Open API adapters
     "thinkdeep": ThinkDeepTool(),  # Step-by-step deep thinking workflow with expert analysis
     "planner": PlannerTool(),  # Interactive sequential planner using workflow architecture
     "consensus": ConsensusTool(),  # Step-by-step consensus workflow with multi-model analysis
@@ -279,6 +281,8 @@ TOOLS = {
     "version": VersionTool(),  # Display server version and system information
 }
 TOOLS = filter_disabled_tools(TOOLS)
+if (get_env("PAL_AGENT_ONLY", "") or "").lower() in {"1", "true", "yes"}:
+    TOOLS = {name: tool for name, tool in TOOLS.items() if name in {"agentlink", "clink", "version", "listmodels"}}
 
 # Rich prompt templates for all tools
 PROMPT_TEMPLATES = {
@@ -385,6 +389,9 @@ def configure_providers():
     Raises:
         ValueError: If no valid API keys are found or conflicting configurations detected
     """
+    if (get_env("PAL_AGENT_ONLY", "") or "").lower() in {"1", "true", "yes"}:
+        logger.info("PAL_AGENT_ONLY enabled: desktop and CLI agents use their existing authentication")
+        return
     # Log environment variable status for debugging
     logger.debug("Checking environment variables for API keys...")
     api_keys_to_check = ["OPENAI_API_KEY", "OPENROUTER_API_KEY", "GEMINI_API_KEY", "XAI_API_KEY", "CUSTOM_API_URL"]

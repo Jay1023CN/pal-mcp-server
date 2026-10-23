@@ -1,0 +1,109 @@
+# PAL Agent Link
+
+让 MCP 客户端把任务交给本机编码代理或桌面会话，并读回进度、结果和错误。Python 3.10+，不包含固定用户名、盘符、端口或本机凭证。
+
+## 连接方式
+
+| 代理 | 接口 | 连接对象 |
+| --- | --- | --- |
+| Antigravity | 桌面本地 Connect RPC | 正在运行的桌面会话；不使用 CLI 回退 |
+| OpenCode | HTTP API，区分 1.x / 2.x | 正在运行的服务，可与桌面客户端共享 |
+| Qoder | 官方 ACP stdio | CLI 代理进程，不接管已经打开的 IDE 对话 |
+| Qoder CN | 官方 ACP stdio | 独立的国内版 CLI、账号和会话 |
+| WorkBuddy | 官方本地助理 Open API | 已在线的 PC 本地助理，需要 OAuth 凭证 |
+
+## 安装
+
+在本仓库目录中执行：
+
+```sh
+python -m venv .venv
+# 激活虚拟环境后：
+python -m pip install .
+pal-agent-link --check
+```
+
+注册到支持 stdio 的 MCP 客户端：
+
+```json
+{
+  "mcpServers": {
+    "pal": {
+      "command": "pal-mcp-server",
+      "env": {"PYTHONUTF8": "1", "PAL_AGENT_ONLY": "1"}
+    }
+  }
+}
+```
+
+客户端需要能在 PATH 中找到 `pal-mcp-server`。使用虚拟环境时，可在**用户自己的配置**中填写该环境的可执行文件路径；项目源码和示例不绑定某个人的目录。当前尚未发布到 PyPI。
+
+## 工具
+
+- `agents_status`：查询连接状态。ACP 握手成功只说明协议可用，不代表账号或模型可执行任务。
+- `agent_sessions` / `agent_models`：查询会话和模型。
+- `agent_create`：指定 workspace，创建会话。Antigravity 需要明确 model；OpenCode 的 model 格式为 `provider/model`。
+- `agent_send`：提交任务。返回 submitted 不代表完成。
+- `agent_read` / `agent_wait`：读取输出、执行状态和错误。
+- `agent_permissions` / `agent_permission_reply`：查看和回答 Qoder ACP 的权限请求；默认不自动批准。
+
+后续消息沿用 session_id。ACP 会话在当前 MCP 进程中维护；MCP 重启后暂不自动恢复。Qoder 的模型选项在创建会话后返回。需要多个代理协作时，应明确各自负责的文件，避免同时覆盖同一个文件。
+
+## 自动发现与可选配置
+
+默认通过用户标准目录、XDG 目录、PATH 和本机进程元数据发现接口。Antigravity 的令牌仅在内存中使用；OpenCode 从它自己的 service.json 读取本机服务信息，不读取模型供应商 auth.json。
+
+所有代理均为可选。没安装某个客户端不会阻止其他客户端使用。特殊安装方式可以设置 `AGENT_LINK_CONFIG`，或传入 `--config config.local.json`：
+
+```json
+{
+  "opencode": {
+    "url": "http://127.0.0.1:4096",
+    "password_env": "OPENCODE_SERVER_PASSWORD"
+  },
+  "qoder": {"command": ["qodercli"]},
+  "qodercn": {"command": ["qoderclicn"]},
+  "workbuddy": {"token_env": "WORKBUDDY_ACCESS_TOKEN"}
+}
+```
+
+没有自定义需求时不要复制示例覆盖自动发现。command 是参数数组，不通过 shell 拼接。Windows 推荐原生 CLI，或者 `["node", "自己的 CLI 脚本路径"]`；自动发现也支持标准 npm 安装。
+
+WorkBuddy 使用 `https://www.workbuddy.cn`。按[官方 OAuth 文档](https://open.workbuddy.cn/docs/openapi)注册第三方应用并完成用户授权，把 access_token 放入环境变量。所需 scope 为 `user.localassistant.readable` 和 `user.localassistant.invokable`。本项目不从桌面客户端提取登录凭证。token 续期由调用方管理，过期会返回明确错误。
+
+WorkBuddy 固定使用 `session_id=local-assistant`。工作目录和模型在 WorkBuddy 内设置；该接口不能任意新建项目会话。消息返回不代表整个任务结束，适配器明确返回 response_received。
+
+## 当前边界
+
+- Antigravity 的内部桌面 RPC、OpenCode 2.x 的部分实验接口可能随客户端更新变化。
+- 桌面服务需要由用户启动。此 MCP 不自动安装、登录或更改客户端权限。
+- 桌面 HTTP 只允许本机回环地址，禁用代理和重定向。只有 Antigravity 本机服务允许自签名 TLS；WorkBuddy 保持标准 HTTPS 校验。
+- 不自动重试任何写请求。超时后先查询状态，避免重复执行。
+- Windows 是当前真实验证环境；Linux/macOS 使用通用发现逻辑，尚未做真实客户端验证。
+
+## 开发
+
+```sh
+python -m pip install -e .
+python -m pytest tests/test_agentlink_contracts.py tests/test_agentlink_tool.py -q
+```
+
+测试不使用真实账号。真实客户端的消息与文件编辑验收另行记录，连接失败不会作为验收通过。
+
+需要在自己的环境做真实消息往返测试时，使用已登录的客户端及可丢弃的工作目录：
+
+```sh
+python scripts/agentlink_smoke.py --workspace /absolute/path/to/scratch --agents qoder qodercn
+python scripts/agentlink_smoke.py --workspace /absolute/path/to/scratch --agents opencode --opencode-model provider/model
+```
+
+该测试会创建真实会话，但只要求固定文字回复，不修改项目文件。需要 ACP 权限测试时，运行 tests 中的本地测试即可，不会调用真实账号。
+
+项目包含 Apache-2.0 许可、配置示例和跨平台 GitHub Actions 测试配置；Actions 尚未在远程仓库运行。发布前只上传本项目源码，不上传用户配置、登录态、真实测试会话或 `work/` 目录。
+
+接口参考：[Qoder ACP](https://docs.qoder.com/cli/acp)、[Qoder CN 参数](https://docs.qoder.cn/cli/cli-reference)、[OpenCode Server](https://opencode.ai/docs/server/)、[WorkBuddy Open API](https://open.workbuddy.cn/docs/openapi)。OpenCode 2.x 的本次适配同时核对了客户端自带的 HTTP 客户端代码。
+
+
+## PAL integration
+
+PAL exposes one native tool, gentlink, with action values: status, sessions, models, create, send, read, wait, permissions, permission_reply. Use gent_model to select the target agent model. The separate pal-agent-link entry point exposes the gent_* tools listed above. Set PAL_AGENT_ONLY=1 for PAL without provider API keys. This is an unofficial Apache-2.0 fork; see [release notes](agent-link-release.md).

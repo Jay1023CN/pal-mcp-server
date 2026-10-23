@@ -2,9 +2,10 @@
 name = "pal-mcp-server"
 version = "9.8.2"
 description = "AI-powered MCP server with multiple model providers"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
-    "mcp>=1.0.0",
+    "mcp>=1.30.0,<2",
+    "psutil>=5.9",
     "google-genai>=1.19.0",
     "openai>=1.55.2",
     "pydantic>=2.0.0",
@@ -12,7 +13,7 @@ dependencies = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["tools*", "providers*", "systemprompts*", "utils*", "conf*", "clink*"]
+include = ["tools*", "providers*", "systemprompts*", "utils*", "conf*", "clink*", "agent_link*"]
 
 [tool.setuptools]
 py-modules = ["server", "config"]
@@ -37,6 +38,7 @@ py-modules = ["server", "config"]
 
 [project.scripts]
 pal-mcp-server = "server:run"
+pal-agent-link = "agent_link.server:main"
 
 [tool.black]
 line-length = 120

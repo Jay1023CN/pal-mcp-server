@@ -1,5 +1,7 @@
 # PAL MCP: Many Workflows. One Context.
 
+> **PAL Agent Link fork** — 在上游 PAL 基础上新增 `agentlink`：连接 Antigravity 桌面会话、OpenCode 桌面后台、Qoder / Qoder CN ACP 和 WorkBuddy 本地助理。支持自动发现及 `PAL_AGENT_ONLY=1` 无模型 API Key 模式。详见 [安装与能力边界](docs/agent-link.md)。原有 PAL 工具与 Apache-2.0 许可证保留；本分支不是上游官方版本。
+
 <div align="center">
 
   <em>Your AI's PAL – a Provider Abstraction Layer</em><br />
