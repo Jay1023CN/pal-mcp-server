@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v9.9.0 (2026-10-23)
+
+### Chores
+
+- Sync version to config.py [skip ci]
+  ([`7afc7c1`](https://github.com/Jay1023CN/pal-mcp-server/commit/7afc7c1cc96e23992c8f105f960132c657883bb1))
+
+### Features
+
+- **agentlink**: 接入桌面会话与多客户端编码代理
+  ([`b587b66`](https://github.com/Jay1023CN/pal-mcp-server/commit/b587b664bebb80f97555f94932ce880d494d3464))
+
+
 ## v9.8.2 (2025-12-15)
 
 ### Bug Fixes
